@@ -1,0 +1,230 @@
+﻿@{
+    Layout = "_Layout";
+}
+
+<style>
+    /* İnputların beyaz görünmesini engelleyen ve şıklaştıran stil */
+    .auth-input {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+        padding: 12px 20px;
+        border-radius: 15px !important;
+        transition: all 0.3s ease;
+    }
+
+        .auth-input:focus {
+            background: rgba(255, 255, 255, 0.12) !important;
+            border-color: #FF6B00 !important;
+            box-shadow: 0 0 15px rgba(255, 107, 0, 0.2) !important;
+        }
+
+        .auth-input::placeholder {
+            color: rgba(255, 255, 255, 0.4) !important;
+        }
+
+    /* Tarayıcı otomatik doldurma (autofill) renklerini düzeltme */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+        -webkit-text-fill-color: white !important;
+        -webkit-box-shadow: 0 0 0px 1000px #1e293b inset !important;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+
+    /* Custom Checkbox Style */
+    .form-check-input {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+        .form-check-input:checked {
+            background-color: #FF6B00;
+            border-color: #FF6B00;
+        }
+
+    /* Yönlendirme Ekranı (Overlay) */
+    #redirectOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #0f172a;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+
+    .loader-spin {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255,107,0,0.1);
+        border-left-color: #FF6B00;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+
+<div id="redirectOverlay">
+    <div class="loader-spin mb-4"></div>
+    <h4 class="text-white fw-bold">Öğrenme Alanın Hazırlanıyor...</h4>
+    <p class="text-white-50">Lütfen bekleyin, yönlendiriliyorsunuz.</p>
+</div>
+
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+    <div class="auth-card p-5 shadow-lg" style="max-width: 500px; width: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(25px); border-radius: 35px; border: 1px solid rgba(255,255,255,0.08);">
+
+        <div class="text-center mb-4">
+            <h1 class="fw-bold text-white mb-1">Learnicted</h1>
+            <p class="text-white-50 small">Geleceği inşa etmeye buradan başla.</p>
+        </div>
+
+        <ul class="nav nav-pills nav-justified mb-4 p-1 bg-dark bg-opacity-50 rounded-4" id="authTab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active rounded-4" id="login-tab" data-bs-toggle="pill" data-bs-target="#loginArea" type="button">Giriş</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link rounded-4" id="register-tab" data-bs-toggle="pill" data-bs-target="#registerArea" type="button">Kayıt</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="authTabContent">
+            <div id="loginArea" class="tab-pane fade show active">
+                <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
+                    <div class="mb-3">
+                        <input type="email" id="loginEmail" class="form-control auth-input" placeholder="E-posta" autocomplete="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <input type="password" id="loginPass" class="form-control auth-input" placeholder="Şifre" autocomplete="current-password" required>
+                    </div>
+                    <div class="form-check mb-4 ms-1">
+                        <input class="form-check-input" type="checkbox" id="rememberMe">
+                        <label class="form-check-label text-white-50 small" for="rememberMe">Beni Hatırla</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill" style="background: #FF6B00; border:none; box-shadow: 0 8px 20px rgba(255,107,0,0.3);">
+                        Giriş Yap <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                </form>
+            </div>
+
+            <div id="registerArea" class="tab-pane fade">
+                <form id="registerForm" onsubmit="event.preventDefault(); handleRegister();">
+                    <div class="row g-2 text-start">
+                        <div class="col-12 mb-2">
+                            <input type="text" id="regFullName" class="form-control auth-input" placeholder="Ad Soyad" required>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <input type="text" id="regUserName" class="form-control auth-input" placeholder="Kullanıcı Adı" required>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <input type="tel" id="regPhone" class="form-control auth-input" placeholder="Telefon No">
+                        </div>
+                        <div class="col-12 mb-2">
+                            <input type="email" id="regEmail" class="form-control auth-input" placeholder="E-posta" autocomplete="new-password" required>
+                        </div>
+                        <div class="col-12 mb-2">
+                            <select id="regGrade" class="form-select auth-input" required>
+                                <option selected disabled value="">Sınıfınızı Seçin</option>
+                                <option value="8">8. Sınıf (LGS)</option>
+                                <option value="12">12. Sınıf (YKS)</option>
+                            </select>
+                        </div>
+                        <div class="col-12 mb-4">
+                            <input type="password" id="regPass" class="form-control auth-input" placeholder="Şifre" autocomplete="new-password" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill" style="background: #FF6B00; border:none;">
+                        Hesabı Oluştur
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const savedEmail = localStorage.getItem("rememberedEmail");
+        if(savedEmail) {
+            document.getElementById("loginEmail").value = savedEmail;
+            document.getElementById("rememberMe").checked = true;
+        }
+    });
+
+    function showLoading() {
+        document.getElementById("redirectOverlay").style.display = "flex";
+    }
+
+    async function handleLogin() {
+        const email = document.getElementById('loginEmail').value;
+        const pass = document.getElementById('loginPass').value;
+        const remember = document.getElementById('rememberMe').checked;
+
+        const payload = { Email: email, Password: pass };
+
+        try {
+            const response = await fetch('/Account/LoginAction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                if(remember) {
+                    localStorage.setItem("rememberedEmail", email);
+                } else {
+                    localStorage.removeItem("rememberedEmail");
+                }
+
+                showLoading();
+                setTimeout(() => {
+                    window.location.href = '/Dashboard/Index';
+                }, 1500);
+            } else {
+                alert("E-posta veya şifre hatalı.");
+            }
+        } catch (err) {
+            alert("Giriş yapılırken bir hata oluştu.");
+        }
+    }
+
+    async function handleRegister() {
+        const payload = {
+            FullName: document.getElementById('regFullName').value,
+            UserName: document.getElementById('regUserName').value,
+            Email: document.getElementById('regEmail').value,
+            Phone: document.getElementById('regPhone').value,
+            Grade: document.getElementById('regGrade').value,
+            Password: document.getElementById('regPass').value
+        };
+
+        try {
+            const response = await fetch('/Account/Register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                showLoading();
+                setTimeout(() => {
+                    window.location.href = '/Dashboard/Index';
+                }, 1500);
+            } else {
+                const error = await response.text();
+                alert("Kayıt Hatası: " + error);
+            }
+        } catch (err) {
+            alert("Sunucuya bağlanılamadı.");
+        }
+    }
+</script>

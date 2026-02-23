@@ -1,0 +1,295 @@
+﻿@model StudyViewModel
+
+<div class="container-fluid">
+    <div class="row pt-4">
+        <div class="col-lg-8">
+            <div id="mainStudyArea" style="display:none;">
+                <div class="card bg-dark text-white border-0 shadow-lg mb-4" style="border-radius: 25px; background: rgba(30, 41, 59, 0.4) !important; backdrop-filter: blur(15px);">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h1 class="fw-bold m-0 text-primary" id="subjectTitle">@Model.Subject</h1>
+                            <span class="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill">Yapay Zeka Destekli</span>
+                        </div>
+
+                        <div class="chat-container bg-black bg-opacity-25 rounded-4 p-3 border border-secondary border-opacity-25">
+                            <div id="chatBox" class="chat-box mb-3 p-3" style="height: 600px; overflow-y: auto;">
+                            </div>
+                            <div class="input-group">
+                                <input type="text" id="chatInput" class="form-control bg-dark border-0 text-white py-3 px-4" style="border-radius: 15px 0 0 15px;" placeholder="Anlamadığın yeri sor veya 'Evet' yazarak yol haritası başlat...">
+                                <button class="btn btn-primary px-4" style="border-radius: 0 15px 15px 0;" onclick="sendMessage()"><i class="bi bi-send-fill"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold mb-3"><i class="bi bi-play-btn-fill text-danger me-2"></i> İlgili Video Dersler</h4>
+                <div id="videoContainer" class="row g-3 mb-5">
+                </div>
+            </div>
+
+            <div id="welcomeScreen" class="text-center py-5">
+                <div class="mb-4">
+                    <i class="bi bi-mortarboard text-primary" style="font-size: 6rem; opacity: 0.8;"></i>
+                </div>
+                <h2 class="fw-bold">Bugün Ne Öğrenmek İstersin?</h2>
+                <p class="text-white-50 mx-auto" style="max-width: 500px;">Bir konu girerek yeni bir sayfa açabilirsin.</p>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 p-4 mb-4 shadow-lg" style="border-radius: 25px; background: linear-gradient(135deg, #6366f1, #a855f7);">
+                <h5 class="text-white fw-bold mb-3"><i class="bi bi-search me-2"></i> Yeni Bir Şey Öğren</h5>
+                <div class="input-group mb-2">
+                    <input type="text" id="newTopicInput" class="form-control border-0 rounded-start-pill py-2 px-4" placeholder="Örn: Illustrator, Photoshop...">
+                    <button class="btn btn-white rounded-end-pill fw-bold" onclick="loadNewContent()">Sihri Başlat</button>
+                </div>
+            </div>
+
+            <div class="card border-0 p-4 bg-dark text-white shadow-lg" style="border-radius: 25px; background: rgba(30, 41, 59, 0.4) !important; backdrop-filter: blur(15px);">
+                <h5 class="fw-bold mb-3 text-info"><i class="bi bi-clock-history me-2"></i> Araştırdıkların</h5>
+                <div id="historyList" class="list-group list-group-flush bg-transparent">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header border-0 bg-black bg-opacity-25">
+                <h6 class="modal-title text-white" id="modalVideoTitle">Video İzle</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="ratio ratio-16x9">
+                    <iframe id="modalYoutubeFrame" src="" frameborder="0" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let chatHistory = [];
+
+        $(document).ready(function () {
+            getHistory();
+            let currentTopic = "@Model.Subject";
+            if (currentTopic && currentTopic !== "" && currentTopic !== "Default") {
+                initStudy(currentTopic);
+            }
+
+            $('#chatInput').keypress(function (e) {
+                if (e.which == 13) { sendMessage(); return false; }
+            });
+
+            $('#videoModal').on('hidden.bs.modal', function () {
+                $("#modalYoutubeFrame").attr("src", "");
+            });
+        });
+
+        function getHistory() {
+            $.get("/AI/GetUserHistory", function (data) {
+                let html = "";
+                if(data && data.length > 0) {
+                    data.forEach(topic => {
+                        html += `
+                        <div class="d-flex align-items-center mb-1 history-container">
+                            <button onclick="initStudy('${topic}')" class="list-group-item list-group-item-action bg-transparent text-white border-0 py-3 small history-item flex-grow-1">
+                                <i class="bi bi-journal-bookmark text-info me-2"></i> ${topic}
+                            </button>
+                            <button onclick="deleteHistoryItem('${topic}')" class="btn btn-link text-danger p-2 delete-btn">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        </div>`;
+                    });
+                } else {
+                    html = "<small class='text-white-50 p-3 d-block text-center'>Geçmiş boş.</small>";
+                }
+                $("#historyList").html(html);
+            });
+        }
+
+        function deleteHistoryItem(topic) {
+            if(!confirm(`'${topic}' kaydını silmek istediğine emin misin?`)) return;
+            $.ajax({
+                url: "/AI/DeleteHistory",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(topic),
+                success: function() {
+                    getHistory();
+                }
+            });
+        }
+
+        function initStudy(topic) {
+            chatHistory = [];
+            $("#chatBox").empty();
+            $("#videoContainer").empty();
+            $("#welcomeScreen").hide();
+            $("#mainStudyArea").show();
+            $("#subjectTitle").text(topic);
+            $("#newTopicInput").val("");
+            $("#chatBox").html('<div class="text-center py-5"><div class="spinner-border text-info" role="status"></div><p class="mt-2 text-white-50">Yükleniyor...</p></div>');
+            $("#videoContainer").html('<div class="col-12 text-center text-white-50 py-3">Videolar hazırlanıyor...</div>');
+            fetchData(topic);
+        }
+
+        function loadNewContent() {
+            let topic = $("#newTopicInput").val().trim();
+            if(!topic) return;
+            initStudy(topic);
+            getHistory();
+        }
+
+        function fetchData(topic) {
+            $.get("/AI/GetCourseData", { topic: topic }, function (data) {
+                let initialMsg = `
+                <div class="d-flex justify-content-start mb-4">
+                    <div class="ai-bubble shadow-sm">
+                        <b class="text-info d-block mb-2 fs-5"><i class="bi bi-robot"></i> Eğitim Asistanı (${topic})</b>
+                        <div class="ai-message-content">${data.aiSummary}</div>
+                    </div>
+                </div>`;
+                $("#chatBox").html(initialMsg);
+                chatHistory.push({ role: "assistant", content: data.aiSummary });
+
+                let videoHtml = "";
+                if (data.videos && data.videos.length > 0) {
+                    data.videos.forEach(v => {
+                        let safeTitle = v.title.replace(/'/g, "\\'");
+                        videoHtml += `
+                            <div class="col-md-6 col-lg-3">
+                                <div class="card h-100 bg-dark border-0 rounded-4 overflow-hidden video-hover" onclick="openVideo('${v.videoId}', '${safeTitle}')" style="cursor:pointer;">
+                                    <img src="https://img.youtube.com/vi/${v.videoId}/mqdefault.jpg" class="card-img-top" style="height: 140px; object-fit: cover;">
+                                    <div class="card-body p-3">
+                                        <h6 class="text-white fw-bold line-clamp-2 mb-0" style="font-size: 0.85rem;">${v.title}</h6>
+                                    </div>
+                                </div>
+                            </div>`;
+                    });
+                }
+                $("#videoContainer").html(videoHtml);
+            });
+        }
+
+        function sendMessage() {
+            let msg = $("#chatInput").val().trim();
+            let topic = $("#subjectTitle").text();
+            if(!msg) return;
+
+            $("#chatBox").append(`
+                <div class="d-flex justify-content-end mb-4">
+                    <div class="user-bubble shadow-sm">${msg}</div>
+                </div>`);
+
+            $("#chatInput").val("");
+            $("#chatBox").scrollTop($("#chatBox")[0].scrollHeight);
+
+            $.ajax({
+                url: "/AI/AskAssistant",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    message: msg,
+                    topic: topic,
+                    history: chatHistory
+                }),
+                success: function(data) {
+                    $("#chatBox").append(`
+                    <div class="d-flex justify-content-start mb-4">
+                        <div class="ai-bubble shadow-sm">
+                            <b class="text-info d-block mb-2 fs-5"><i class="bi bi-robot"></i> Learnicted AI</b>
+                            <div class="ai-message-content">${data.answer}</div>
+                        </div>
+                    </div>`);
+
+                    chatHistory.push({ role: "user", content: msg });
+                    chatHistory.push({ role: "assistant", content: data.answer });
+
+                    if(chatHistory.length > 10) chatHistory.shift();
+                    $("#chatBox").scrollTop($("#chatBox")[0].scrollHeight);
+                }
+            });
+        }
+
+        function openVideo(id, title) {
+            $("#modalVideoTitle").text(title);
+            $("#modalYoutubeFrame").attr("src", `https://www.youtube.com/embed/${id}?autoplay=1`);
+            new bootstrap.Modal(document.getElementById('videoModal')).show();
+        }
+    </script>
+
+    <style>
+        .ai-bubble {
+            background: #1e293b;
+            color: #f1f5f9;
+            padding: 20px;
+            border-radius: 20px;
+            border-bottom-left-radius: 5px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            max-width: 90%;
+            font-size: 1.05rem;
+            line-height: 1.6;
+        }
+
+        .user-bubble {
+            background: #4f46e5;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 20px;
+            border-bottom-right-radius: 5px;
+            max-width: 80%;
+            font-size: 1.05rem;
+        }
+
+        .ai-message-content b {
+            color: #38bdf8;
+            font-weight: 700;
+        }
+
+        .video-hover:hover {
+            transform: translateY(-5px);
+            border-color: #6366f1 !important;
+        }
+
+        /* Geçmiş Silme Alanı */
+        .history-container {
+            border-radius: 12px;
+            transition: 0.3s;
+        }
+
+            .history-container:hover {
+                background: rgba(255, 255, 255, 0.05);
+            }
+
+        .history-item {
+            border: none !important;
+            transition: 0.2s;
+        }
+
+        .delete-btn {
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        .history-container:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .chat-box::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+        }
+    </style>
+}

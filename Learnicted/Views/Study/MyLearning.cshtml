@@ -1,0 +1,132 @@
+﻿@{
+    ViewData["Title"] = "Zihin Haritam";
+    Layout = "_Layout"; // Önceki mesajda yaptığımız sidebarlı layout
+}
+
+<div class="learning-container">
+    <div class="header-box mb-5">
+        <h2 class="fw-bold"><i class="bi bi-diagram-3-fill text-primary"></i> Zihin Haritam</h2>
+        <p class="text-muted">Bağımlılık seviyen: <b>%34 Akıllı</b>. Yeni kilitleri açmak için 250 XP lazım.</p>
+    </div>
+
+    <div class="skill-tree">
+        <div class="node-root mb-5 text-center">
+            <div class="node-circle active" data-bs-toggle="tooltip" title="Eğitim Yolculuğu Başladı!">
+                <i class="bi bi-flag-fill"></i>
+            </div>
+            <div class="connector-v"></div>
+        </div>
+
+        <div class="node-row d-flex justify-content-center gap-5">
+            <div class="node-item text-center">
+                <div class="node-circle completed">
+                    <i class="bi bi-check-lg"></i>
+                </div>
+                <p class="node-label">Python Giriş</p>
+                <div class="connector-v"></div>
+            </div>
+
+            <div class="node-item text-center">
+                <div class="node-circle active pulse-orange">
+                    <i class="bi bi-code-slash"></i>
+                </div>
+                <p class="node-label">HTML Temelleri</p>
+                <div class="connector-v pulse-v"></div>
+            </div>
+        </div>
+
+        <div class="node-row d-flex justify-content-center gap-5 mt-5">
+            <div class="node-item text-center">
+                <div class="node-circle locked">
+                    <i class="bi bi-lock-fill"></i>
+                </div>
+                <p class="node-label text-muted">Python Döngüler</p>
+            </div>
+            <div class="node-item text-center">
+                <div class="node-circle locked">
+                    <i class="bi bi-lock-fill"></i>
+                </div>
+                <p class="node-label text-muted">CSS Styling</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Skill Tree Görselleştirme */
+    .skill-tree {
+        position: relative;
+        padding: 20px;
+    }
+
+    .node-circle {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-size: 1.5rem;
+        transition: all 0.4s ease;
+        cursor: pointer;
+        position: relative;
+        z-index: 5;
+    }
+
+    /* Durum Renkleri */
+    .completed {
+        background: #10b981;
+        color: white;
+        border: 4px solid #d1fae5;
+    }
+
+    .active {
+        background: #6366f1;
+        color: white;
+        border: 4px solid #e0e7ff;
+        box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .locked {
+        background: #e2e8f0;
+        color: #94a3b8;
+        border: 4px solid #f1f5f9;
+        cursor: not-allowed;
+    }
+
+    /* Bağlantı Çizgileri */
+    .connector-v {
+        width: 4px;
+        height: 50px;
+        background: #e2e8f0;
+        margin: 0 auto;
+    }
+
+    .completed + .connector-v {
+        background: #10b981;
+    }
+
+    /* Animasyonlu Efekt (Öğrenciyi çeken şey bu!) */
+    .pulse-orange {
+        animation: shadow-pulse 2s infinite;
+        border-color: #fbbf24 !important;
+        background: #f59e0b !important;
+    }
+
+    @@keyframes shadow-pulse {
+        0% {
+            box-shadow: 0 0 0 0px rgba(245, 158, 11, 0.4);
+        }
+
+        100% {
+            box-shadow: 0 0 0 20px rgba(245, 158, 11, 0);
+        }
+    }
+
+    .node-label {
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-top: 5px;
+    }
+</style>

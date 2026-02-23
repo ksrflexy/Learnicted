@@ -1,0 +1,113 @@
+﻿@{
+    ViewData["Title"] = "Çalışma Alanı";
+    var topic = ViewBag.CurrentTopic ?? "Genel Tekrar";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="glass-card p-5 animate__animated animate__fadeIn" style="border: 2px solid #6366f1; background: rgba(15, 23, 42, 0.8);">
+                <div class="ai-avatar mx-auto mb-4" style="width: 80px; height: 80px; background: #6366f1; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);">
+                    <i class="bi bi-robot fs-1 text-white"></i>
+                </div>
+
+                <h2 class="text-white fw-bold mb-3">Yeni Yol Haritası Oluştur</h2>
+                <p class="text-white-50 mb-4"><strong>@topic</strong> konusu hakkında ne öğrenmek istiyorsun? AI senin için 15 adımlık profesyonel bir rota hazırlayacak.</p>
+
+                <div class="input-group input-group-lg mb-4 shadow">
+                    <input type="text" id="user-input" class="form-control bg-dark text-white border-secondary rounded-start-pill ps-4"
+                           placeholder="Örn: 9. Sınıf seviyesinde, sıfırdan anlat...">
+                    <button class="btn btn-primary rounded-end-pill px-5 fw-bold" onclick="createRoadmap()">
+                        <span id="btn-text">Oluştur</span>
+                        <span id="btn-loader" class="spinner-border spinner-border-sm d-none"></span>
+                    </button>
+                </div>
+
+                <div id="status-msg" class="text-info small fw-bold mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function createRoadmap() {
+        const input = document.getElementById('user-input');
+        const btnText = document.getElementById('btn-text');
+        const btnLoader = document.getElementById('btn-loader');
+        const statusMsg = document.getElementById('status-msg');
+
+        if(!input.value.trim()) {
+            input.classList.add('is-invalid');
+            return;
+        } else {
+            input.classList.remove('is-invalid');
+        }
+
+        btnText.classList.add('d-none');
+        btnLoader.classList.remove('d-none');
+        statusMsg.innerText = "Yapay zeka rotayı çiziyor, lütfen bekle...";
+
+        try {
+            const response = await fetch('/AI/GenerateRoadmap', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    UserMessage: input.value,
+                    Topic: "@topic"
+                })
+            });
+
+            if(!response.ok) throw new Error("AI Servisi yanıt vermedi.");
+
+            const data = await response.json();
+
+            // ROADMAP NESNESİ OLUŞTURMA (Roadmap.cshtml ile tam uyumlu)
+            const roadmapObj = {
+                topic: "@topic",
+                userPrompt: input.value,
+                explanation: data.explanation || data.Explanation,
+                Roadmap: data.roadmap || data.Roadmap, // Dizi burada
+                currentStep: 0,
+                createdAt: new Date().getTime(),
+                isCompleted: false
+            };
+
+            // KRİTİK DÜZELTME: UserID'ye özel anahtar kullanımı
+            const storageKey = "active_roadmap_@ViewBag.UserId";
+            localStorage.setItem(storageKey, JSON.stringify(roadmapObj));
+
+            // KUTLAMA
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+
+            statusMsg.className = "text-success fw-bold mt-2";
+            statusMsg.innerText = "Harika! Yol haritan hazırlandı. Başarılar dileriz!";
+
+            setTimeout(() => {
+                window.location.href = '/Dashboard/Roadmap';
+            }, 2000);
+
+        } catch (e) {
+            console.error(e);
+            statusMsg.className = "text-danger fw-bold mt-2";
+            statusMsg.innerText = "Bir hata oluştu. Lütfen tekrar dene.";
+            btnText.classList.remove('d-none');
+            btnLoader.classList.add('d-none');
+        }
+    }
+</script>
+
+<style>
+    .glass-card {
+        backdrop-filter: blur(10px);
+        border-radius: 2rem;
+    }
+
+    .form-control:focus {
+        background-color: #1a1d20 !important;
+        color: white;
+        box-shadow: none;
+        border-color: #6366f1;
+    }
+</style>

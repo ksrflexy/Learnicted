@@ -1,0 +1,201 @@
+﻿@model Learnicted.Models.UserProfileViewModel
+
+@{
+    ViewData["Title"] = "Profilim";
+}
+
+<div class="container py-5" style="margin-top: 50px; color: #e6edf3;">
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card bg-dark border-secondary shadow-lg p-4 rounded-4" style="background-color: #161b22 !important;">
+                <div class="text-center">
+                    <div class="position-relative d-inline-block">
+                        <img src="https://ui-avatars.com/api/?name=@Model.FullName&background=0D8ABC&color=fff&size=128"
+                             class="rounded-circle border border-3 border-primary shadow" alt="Profil">
+                        <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle p-2"></span>
+                    </div>
+                    <h3 class="mt-3 fw-bold text-white">@Model.FullName</h3>
+                    <p class="text-info mb-1">@@@Model.UserName</p>
+                </div>
+
+                <hr class="my-4 border-secondary">
+
+                <div class="bio-section">
+                    <h6 class="text-uppercase fw-bold text-primary small mb-3">Biyografi</h6>
+                    <p id="profileBio" class="small" style="color: #cbd5e1 !important;">
+                        @(string.IsNullOrEmpty(Model.Bio) ? "Henüz bir biyografi eklenmemiş." : Model.Bio)
+                    </p>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button class="btn btn-outline-light btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                        <i class="bi bi-pencil me-2"></i>Profili Düzenle
+                    </button>
+                    <a id="githubProfileLink" href="https://github.com/@Model.GithubUsername" target="_blank" class="btn btn-outline-primary btn-sm shadow-sm">
+                        <i class="bi bi-github me-2"></i>GitHub Profilini Gör
+                    </a>
+                </div>
+            </div>
+
+            <div class="card bg-dark border-warning shadow-sm p-4 rounded-4 mt-4" style="background-color: #161b22 !important;">
+                <h6 class="fw-bold text-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>Eksik Konular</h6>
+                <div id="missing-topics-list">
+                    @if (Model.MissingTopics != null && Model.MissingTopics.Any())
+                    {
+                        foreach (var topic in Model.MissingTopics)
+                        {
+                            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-black bg-opacity-50 rounded border-start border-3 border-warning">
+                                <span class="small text-white">@topic</span>
+                                <a href="/Home/Remediation?topic=@Uri.EscapeDataString(topic)" class="btn btn-sm btn-warning py-0 px-2 shadow-sm">
+                                    <i class="bi bi-play-fill text-dark"></i>
+                                </a>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="small text-muted">Harika! Eksik konun bulunmuyor.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="row g-3 mb-4 text-center">
+                <div class="col-md-4">
+                    <div class="card bg-primary bg-gradient text-white p-3 border-0 rounded-4 shadow">
+                        <small class="opacity-75">Tamamlanan</small>
+                        <h3 class="fw-bold mb-0">24 Ünite</h3>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-success bg-gradient text-white p-3 border-0 rounded-4 shadow">
+                        <small class="opacity-75">Devam Eden</small>
+                        <h3 class="fw-bold mb-0">3 Kurs</h3>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-info bg-gradient text-white p-3 border-0 rounded-4 shadow">
+                        <small class="opacity-75">Başarı Puanı</small>
+                        <h3 class="fw-bold mb-0">850 XP</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="text-white fw-bold mb-0">Projelerim</h4>
+                <button class="btn btn-success btn-sm rounded-pill px-3 shadow-sm">+ Yeni Proje</button>
+            </div>
+
+            <div class="row g-3">
+                @if (Model.Projects != null)
+                {
+                    foreach (var project in Model.Projects)
+                    {
+                        <div class="col-md-6">
+                            <div class="card bg-dark text-white border-secondary h-100 p-3 project-card shadow-sm">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h6 class="fw-bold text-info mb-1"><i class="bi bi-journal-code me-2"></i>@project.Title</h6>
+                                    <span class="badge bg-secondary">@project.Language</span>
+                                </div>
+                                <p class="small mt-2 mb-3" style="color: #cbd5e1 !important;">@project.Description</p>
+                                <div class="mt-auto pt-2 border-top border-secondary d-flex gap-3 text-muted small">
+                                    <span><i class="bi bi-star me-1 text-warning"></i> @project.Stars</span>
+                                    <span><i class="bi bi-diagram-2 me-1"></i> 4</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-primary"><i class="bi bi-person-gear me-2"></i>Profili Düzenle</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small text-info">Biyografi</label>
+                    <textarea id="editBioText" class="form-control bg-black text-white border-secondary" rows="3">@Model.Bio</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-info">GitHub Kullanıcı Adı</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-secondary border-secondary text-white small">github.com/</span>
+                        <input type="text" id="editGithubUser" class="form-control bg-black text-white border-secondary" value="@Model.GithubUsername">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
+                <button type="button" id="saveProfileBtn" class="btn btn-primary btn-sm" onclick="saveQuickProfile()">Değişiklikleri Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        background-color: #0d1117;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .project-card {
+        transition: all 0.3s ease;
+        background-color: #161b22 !important;
+    }
+
+        .project-card:hover {
+            border-color: #58a6ff !important;
+            transform: translateY(-5px);
+            cursor: pointer;
+        }
+
+    .bg-black {
+        background-color: #010409 !important;
+    }
+</style>
+
+<script>
+    async function saveQuickProfile() {
+        const btn = document.getElementById('saveProfileBtn');
+        const newBio = document.getElementById('editBioText').value;
+        const newGithub = document.getElementById('editGithubUser').value;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Kaydediliyor...';
+
+        try {
+            const response = await fetch('/Home/UpdateProfile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bio: newBio, githubUsername: newGithub })
+            });
+
+            if (response.ok) {
+                // UI Güncelleme
+                document.getElementById('profileBio').innerText = newBio;
+                const linkElement = document.getElementById('githubProfileLink');
+                if(linkElement) linkElement.href = "https://github.com/" + newGithub;
+
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
+                modal.hide();
+                alert("Profil başarıyla sunucuya kaydedildi!");
+            } else {
+                alert("Hata: Kaydedilemedi.");
+            }
+        } catch (error) {
+            console.error("Hata:", error);
+            alert("Sunucu bağlantı hatası!");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = 'Değişiklikleri Kaydet';
+        }
+    }
+</script>

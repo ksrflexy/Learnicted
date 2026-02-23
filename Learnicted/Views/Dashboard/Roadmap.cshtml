@@ -1,0 +1,299 @@
+﻿@model Learnicted.Models.DashboardViewModel
+
+<div id="quiz-modal" class="quiz-overlay d-none">
+    <div class="quiz-card wide-card animate__animated animate__zoomIn" style="max-width: 800px;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 id="quiz-title" class="text-white fw-bold mb-0">Ünite Eğitimi</h4>
+            <button class="btn-close btn-close-white" onclick="closeQuiz()"></button>
+        </div>
+
+        <div id="step-video" class="quiz-step">
+            <div id="video-loading" class="text-center py-4 text-white-50">
+                <div class="spinner-border text-primary mb-2"></div>
+                <p>Yapay zeka en uygun ders videosunu hazırlıyor...</p>
+            </div>
+            <div id="video-content" class="d-none">
+                <div class="ratio ratio-16x9 mb-3 shadow-lg rounded-4 overflow-hidden bg-black">
+                    <iframe id="yt-player" src="" title="YouTube video player" frameborder="0" allowfullscreen></iframe>
+                </div>
+                <div class="alert alert-info border-0 bg-dark text-white shadow-sm">
+                    <i class="bi bi-info-circle me-2"></i> Önce bu konunun eğitim videosunu izle, ardından testi çözerek ilerle.
+                </div>
+                <button class="btn btn-warning w-100 py-3 fw-bold mt-2" onclick="startQuestions()">VİDEOYU İZLEDİM, TESTE BAŞLA</button>
+            </div>
+        </div>
+
+        <div id="step-quiz" class="quiz-step d-none">
+            <div class="progress mb-4" style="height: 8px; background: rgba(255,255,255,0.1);">
+                <div id="quiz-progress" class="progress-bar bg-primary progress-bar-striped progress-bar-animated" style="width: 20%"></div>
+            </div>
+            <div id="question-container">
+                <p id="q-counter" class="text-primary fw-bold mb-1">Soru 1/5</p>
+                <h5 id="q-text" class="text-white mb-4 lh-base" style="min-height: 80px;">Soru yükleniyor...</h5>
+                <div id="opt-list" class="d-grid gap-3"></div>
+            </div>
+        </div>
+
+        <div id="step-result" class="quiz-step d-none text-center">
+            <div class="py-4">
+                <div class="display-1 text-success mb-3"><i class="bi bi-patch-check"></i></div>
+                <h2 class="text-white">Ünite Tamamlandı!</h2>
+                <div id="ai-advice" class="alert alert-light mt-4 text-start" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+                    <strong><i class="bi bi-robot text-warning"></i> AI Analizi:</strong><br>
+                    <p id="advice-text" class="mt-2 mb-0">Verileriniz işleniyor...</p>
+                </div>
+                <button class="btn btn-primary px-5 py-3 rounded-pill fw-bold" onclick="completeUnit()">HARİTADA İLERLE</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div id="roadmap-list" class="roadmap-list mx-auto" style="max-width: 700px;">
+    </div>
+</div>
+
+<script>
+    let activeRoadmap = null;
+    let quizSet = [];
+    let currentQIdx = 0;
+    let wrongs = [];
+    let activeStepTitle = "";
+
+    const currentUserId = "@ViewBag.UserId";
+    const storageKey = "active_roadmap_" + currentUserId;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        // Veriyi çek
+        const raw = localStorage.getItem(storageKey);
+
+        if (raw) {
+            activeRoadmap = JSON.parse(raw);
+            console.log("Yol haritası yüklendi:", activeRoadmap);
+            renderRoadmap();
+        } else {
+            showEmptyState();
+        }
+    });
+
+    function showEmptyState() {
+        document.getElementById("roadmap-list").innerHTML = `
+            <div class="text-center py-5 animate__animated animate__fadeIn">
+                <div class="mb-4">
+                    <i class="bi bi-map-fill text-primary" style="font-size: 5rem; opacity: 0.2;"></i>
+                </div>
+                <h3 class="text-white fw-bold">Henüz Bir Yol Haritan Yok</h3>
+                <p class="text-white-50 mb-4">Öğrenmek istediğin konuyu seç, sana özel rotayı hazırlayalım.</p>
+                <a href="/Dashboard/Study" class="btn btn-primary btn-lg px-5 py-3 rounded-pill shadow-lg fw-bold">
+                    <i class="bi bi-magic me-2"></i>YOL HARİTASI OLUŞTUR
+                </a>
+            </div>`;
+    }
+
+    function renderRoadmap() {
+        const container = document.getElementById("roadmap-list");
+        if (!activeRoadmap) return;
+
+        // Hem 'Roadmap' hem 'steps' kontrolü yapıyoruz (AI'dan hangisi gelirse)
+        const steps = activeRoadmap.Roadmap || activeRoadmap.steps || [];
+        const topicName = activeRoadmap.topic || activeRoadmap.MainTopic || "Eğitim Rotası";
+
+        if (steps.length === 0) {
+            showEmptyState();
+            return;
+        }
+
+        container.innerHTML = `<h4 class="text-white-50 mb-4 text-center">Rota: ${topicName}</h4>`;
+
+        steps.forEach((step, index) => {
+            const title = typeof step === 'string' ? step : (step.Title || step.title);
+            const isCompleted = index < activeRoadmap.currentStep;
+            const isCurrent = index === activeRoadmap.currentStep;
+            const isLocked = index > activeRoadmap.currentStep;
+
+            container.innerHTML += `
+                <div class="roadmap-item d-flex mb-4 ${isLocked ? 'locked' : 'active-p'}"
+                     onclick="${isLocked ? '' : `initStep(${index}, '${title.replace(/'/g, "\\'")}')`}">
+                    <div class="step-indicator me-4">
+                        <div class="icon-box ${isCompleted ? 'bg-success' : isCurrent ? 'bg-primary shadow-lg' : 'bg-secondary'}">
+                            <i class="bi ${isCompleted ? 'bi-check-lg' : isCurrent ? 'bi-play-fill' : 'bi-lock-fill'} text-white"></i>
+                        </div>
+                    </div>
+                    <div class="step-card flex-grow-1 p-3 bg-dark text-white rounded-4 border border-secondary shadow-sm">
+                        <h5 class="mb-1 fw-bold">${title}</h5>
+                        <small class="${isLocked ? 'text-muted' : (isCompleted ? 'text-success' : 'text-info')} fw-bold">
+                            ${isCompleted ? 'Tamamlandı' : isCurrent ? 'Şu an Buradasın' : 'Kilitli'}
+                        </small>
+                    </div>
+                </div>`;
+        });
+    }
+
+    async function initStep(idx, title) {
+        activeStepTitle = title;
+        currentQIdx = 0;
+        wrongs = [];
+
+        document.getElementById("quiz-modal").classList.remove("d-none");
+        document.getElementById("step-video").classList.remove("d-none");
+        document.getElementById("video-loading").classList.remove("d-none");
+        document.getElementById("video-content").classList.add("d-none");
+        document.getElementById("step-quiz").classList.add("d-none");
+        document.getElementById("step-result").classList.add("d-none");
+
+        try {
+            const res = await fetch('/AI/GenerateQuizSet', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    MainTopic: activeRoadmap.topic || activeRoadmap.MainTopic,
+                    CurrentStepTitle: title,
+                    Level: "Orta"
+                })
+            });
+            const data = await res.json();
+            quizSet = data.questions;
+
+            const vidId = data.youtubeVideoId || "vLq6_E2zXls";
+            document.getElementById("yt-player").src = `https://www.youtube.com/embed/${vidId}`;
+
+            document.getElementById("video-loading").classList.add("d-none");
+            document.getElementById("video-content").classList.remove("d-none");
+        } catch (e) {
+            console.error("Hata:", e);
+            alert("Veriler yüklenirken bir sorun oluştu.");
+        }
+    }
+
+    function startQuestions() {
+        document.getElementById("step-video").classList.add("d-none");
+        document.getElementById("step-quiz").classList.remove("d-none");
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const q = quizSet[currentQIdx];
+        document.getElementById("q-counter").innerText = `Soru ${currentQIdx + 1}/5`;
+        document.getElementById("q-text").innerText = q.question;
+        document.getElementById("quiz-progress").style.width = ((currentQIdx + 1) * 20) + "%";
+
+        const list = document.getElementById("opt-list");
+        list.innerHTML = "";
+        q.options.forEach(opt => {
+            list.innerHTML += `<button class="btn btn-outline-light p-3 text-start quiz-opt-btn" onclick="handleAnswer(this, '${opt.replace(/'/g, "\\'")}')">${opt}</button>`;
+        });
+    }
+
+    function handleAnswer(btn, choice) {
+        const q = quizSet[currentQIdx];
+        const allBtns = document.querySelectorAll(".quiz-opt-btn");
+        allBtns.forEach(b => b.disabled = true);
+
+        if (choice === q.answer) {
+            btn.classList.replace("btn-outline-light", "btn-success");
+        } else {
+            btn.classList.replace("btn-outline-light", "btn-danger");
+            wrongs.push(q.question);
+        }
+
+        setTimeout(() => {
+            if (currentQIdx < 4) {
+                currentQIdx++;
+                showQuestion();
+            } else { finishQuiz(); }
+        }, 1200);
+    }
+
+    async function finishQuiz() {
+        document.getElementById("step-quiz").classList.add("d-none");
+        document.getElementById("step-result").classList.remove("d-none");
+
+        try {
+            const res = await fetch('/AI/AnalyzeQuiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    Topic: activeStepTitle,
+                    WrongCount: wrongs.length,
+                    WrongQuestions: wrongs
+                })
+            });
+            const data = await res.json();
+            document.getElementById("advice-text").innerText = data.advice;
+        } catch {
+            document.getElementById("advice-text").innerText = "Tebrikler, bu üniteyi başarıyla tamamladın!";
+        }
+    }
+
+    function completeUnit() {
+        activeRoadmap.currentStep++;
+        localStorage.setItem(storageKey, JSON.stringify(activeRoadmap));
+        location.reload();
+    }
+
+    function closeQuiz() {
+        document.getElementById("quiz-modal").classList.add("d-none");
+        document.getElementById("yt-player").src = "";
+    }
+</script>
+
+<style>
+    .quiz-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(7, 10, 20, 0.98);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .quiz-card {
+        background: #111827;
+        border: 1px solid #374151;
+        border-radius: 2rem;
+        padding: 2.5rem;
+        width: 100%;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+    }
+
+    .icon-box {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .locked {
+        opacity: 0.4;
+        filter: grayscale(1);
+        pointer-events: none;
+    }
+
+    .active-p:hover {
+        transform: translateY(-3px);
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+        .active-p:hover .step-card {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+        }
+
+    .quiz-opt-btn {
+        transition: 0.2s;
+        border: 1px solid #374151;
+    }
+
+        .quiz-opt-btn:hover {
+            background: #1f2937;
+            border-color: #3b82f6;
+        }
+</style>
